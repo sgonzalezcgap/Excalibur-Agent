@@ -146,6 +146,21 @@ Crear (o verificar que existe) el archivo `.vscode/mcp.json` en la raíz del pro
 4. La primera vez, VS Code te pedirá el **GitHub Token** (el que usas para GitHub Models API)
 5. Verás que las herramientas del agente aparecen automáticamente — busca el ícono 🔧 en el chat
 
+### ¿Cómo sabe Copilot que debe usar NUESTRAS herramientas?
+
+El archivo **`.github/copilot-instructions.md`** es la clave. VS Code Copilot lo lee
+automáticamente al abrir el workspace y lo inyecta como instrucciones del sistema.
+
+Este archivo le dice a Copilot:
+- **SIEMPRE preferir** las herramientas MCP del `excalibur-agent` sobre sus herramientas built-in
+- **Seguir el workflow de diagnóstico**: find → read → search_gap_notes → get_skill → fix → compile
+- **Reglas críticas**: usar `OleParametersHelper.ParameterSpec` (nunca `new OleDbParameter()`), agregar GAP-Notes, etc.
+- **Contexto del proyecto**: .NET 9, WinForms, OLE DB, UpgradeHelpers.DB
+
+> **No necesitas hacer nada extra** — con solo tener `.github/copilot-instructions.md` en el
+> workspace, Copilot Chat ya sabe qué herramientas usar y cómo diagnosticar bugs de Excalibur.
+> Simplemente escribe tu pregunta en lenguaje natural y Copilot seguirá el workflow correcto.
+
 ### Paso 3 — Usar las herramientas
 
 En el chat de Copilot, simplemente escribe en lenguaje natural. Copilot invocará las
@@ -350,8 +365,10 @@ dotnet_fix: What the correct .NET fix is
 
 ```
 Upgraded/
+├── .github/
+│   └── copilot-instructions.md    # 🧠 Instrucciones para Copilot (auto-loaded)
 ├── .vscode/
-│   └── mcp.json               # 🤖 MCP Server config for Copilot Chat
+│   └── mcp.json               # 🤖 MCP Server config para Copilot Chat
 └── excalibur-agent/
     ├── excalibur-fix.bat      # 🚀 Launcher script (teammates use this)
     ├── excalibur-fix.py       # CLI entry point
