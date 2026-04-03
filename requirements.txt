@@ -1,0 +1,7 @@
+# Excalibur Forensic Migration Agent
+# Dependencies
+
+openai>=1.30.0          # OpenAI SDK (connects to GitHub Models API)
+python-dotenv>=1.0.0    # .env file support
+requests>=2.31.0        # GitHub REST API for repo sync
+mcp>=1.0.0              # MCP SDK for VS Code Copilot Chat integration
