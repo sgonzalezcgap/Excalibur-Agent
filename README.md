@@ -66,17 +66,17 @@ and documented migration skills as its primary source of truth.
 git pull
 
 # 2. Correr setup (instala dependencias automáticamente)
-agent\setup.bat
+excalibur-agent\setup.bat
 
 # 3. Configurar tu GitHub token (una vez por terminal)
 $env:GITHUB_TOKEN = "ghp_TU_TOKEN_AQUI"
-# O crear archivo agent\.env con: GITHUB_TOKEN=ghp_TU_TOKEN_AQUI
+# O crear archivo excalibur-agent\.env con: GITHUB_TOKEN=ghp_TU_TOKEN_AQUI
 ```
 
-### Uso diario
+### Uso diario (CLI)
 ```powershell
-# Desde cualquier terminal, navegar a la carpeta agent:
-cd agent
+# Desde cualquier terminal, navegar a la carpeta del agente:
+cd excalibur-agent
 
 # Correr el agente:
 excalibur-fix -C NombreClase -b "descripción del error"
@@ -87,52 +87,187 @@ excalibur-fix -C PD_BarCodePrint -b "IndexOutOfRangeException: Invalid index 1 f
 
 > **Nota**: Si `excalibur-fix` no funciona, usar directamente:
 > ```powershell
-> python fix.py -C NombreClase -b "descripción del error"
+> python excalibur-fix.py -C NombreClase -b "descripción del error"
 > ```
 
-## Usage Examples
+---
+
+## 🤖 Uso desde Copilot Chat (MCP Server)
+
+El agente también funciona como **MCP Server** dentro de VS Code. Esto permite usar todas
+las herramientas del agente directamente desde **GitHub Copilot Chat** en modo Agent,
+sin necesidad de abrir una terminal ni recordar comandos.
+
+### Requisitos previos
+1. **VS Code** con la extensión **GitHub Copilot** instalada
+2. **Python 3.12** instalado en `%LOCALAPPDATA%\Programs\Python\Python312\`
+3. **Dependencias** instaladas: ejecutar `excalibur-agent\setup.bat` una sola vez
+
+### Paso 1 — Configurar el MCP Server
+
+Crear (o verificar que existe) el archivo `.vscode/mcp.json` en la raíz del proyecto Excalibur
+(`Upgraded/`). Si ya clonaste el repo, este archivo ya viene incluido:
+
+```jsonc
+// .vscode/mcp.json
+{
+  "servers": {
+    "excalibur-agent": {
+      "type": "stdio",
+      "command": "${env:LOCALAPPDATA}\\Programs\\Python\\Python312\\python.exe",
+      "args": [
+        "${workspaceFolder}/excalibur-agent/mcp_server.py"
+      ],
+      "env": {
+        "PYTHONIOENCODING": "utf-8",
+        "GITHUB_TOKEN": "${input:github-token}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "id": "github-token",
+      "type": "promptString",
+      "description": "GitHub token for the AI model (ghp_...)",
+      "password": true
+    }
+  ]
+}
+```
+
+> **⚠️ Python no está en PATH?** El archivo usa `${env:LOCALAPPDATA}\Programs\Python\Python312\python.exe`.
+> Si tu Python está en otra ruta, ajusta el campo `"command"` con tu ruta completa.
+
+### Paso 2 — Activar en VS Code
+
+1. **Abrir VS Code** con la carpeta `Upgraded/` como workspace
+2. Abrir **Copilot Chat** (ícono de chat en la barra lateral, o `Ctrl+Shift+I`)
+3. Cambiar a **modo Agent** (seleccionar "Agent" en el dropdown del chat, no "Ask" ni "Edit")
+4. La primera vez, VS Code te pedirá el **GitHub Token** (el que usas para GitHub Models API)
+5. Verás que las herramientas del agente aparecen automáticamente — busca el ícono 🔧 en el chat
+
+### Paso 3 — Usar las herramientas
+
+En el chat de Copilot, simplemente escribe en lenguaje natural. Copilot invocará las
+herramientas del agente automáticamente:
+
+#### Ejemplos de prompts:
+
+**Buscar errores en código:**
+```
+Busca IndexOutOfRangeException en PD_BarCodePrint
+```
+
+**Leer un archivo en una línea específica:**
+```
+Lee la línea 87 de BusinessLogic/PD_BarCodePrint.cs
+```
+
+**Compilar el proyecto:**
+```
+Compila el proyecto Excalibur y dime si hay errores
+```
+
+**Buscar GAP-Notes de un compañero:**
+```
+Busca todos los GAP-Notes de sgonzalez en PD_BillingRules
+```
+
+**Ver los skills de migración disponibles:**
+```
+Lista todos los skills de migración disponibles
+```
+
+**Leer un skill específico:**
+```
+Muéstrame el skill de OleParametersHelper
+```
+
+**Resumen de GAP-Notes del codebase:**
+```
+Dame un resumen de todos los GAP-Notes del proyecto
+```
+
+**Encontrar archivos de una clase:**
+```
+Encuentra todos los archivos de frmBondBilling
+```
+
+**Búsqueda + diagnóstico combinado:**
+```
+En PD_BarCodePrint.cs línea 87 hay un IndexOutOfRangeException con OleDbParameterCollection.
+Busca el código, lee el contexto alrededor, revisa si hay GAP-Notes relacionados,
+y consulta el skill de OleParametersHelper para proponer un fix.
+```
+
+### Herramientas MCP disponibles
+
+| Herramienta | Descripción |
+|-------------|-------------|
+| `read_file` | Lee archivos del proyecto (con rango de líneas opcional) |
+| `edit_file` | Edita archivos reemplazando texto (con validación de unicidad) |
+| `search_code` | Busca patrones regex en todo el codebase (.cs) |
+| `find_class_files` | Encuentra todos los archivos de una clase/form |
+| `search_gap_notes` | Busca comentarios `//GAP-Note` por clase o keyword |
+| `compile_project` | Compila con `dotnet build` y reporta errores CS |
+| `list_skills` | Lista todos los skills de migración disponibles |
+| `get_skill` | Lee el contenido completo de un skill específico |
+| `scan_gap_notes_summary` | Resumen estadístico de GAP-Notes (por autor, por clase) |
+
+### Troubleshooting MCP
+
+| Problema | Solución |
+|----------|----------|
+| No aparecen las herramientas en Copilot | Verificar que estás en modo **Agent** (no "Ask") |
+| "Python not found" | Ajustar la ruta en `.vscode/mcp.json` → campo `"command"` |
+| "Module mcp not found" | Ejecutar: `python -m pip install mcp` |
+| El server no arranca | Probar manualmente: `python excalibur-agent/mcp_server.py` y enviar JSON-RPC |
+| Token inválido | VS Code pide el token la primera vez. Para cambiarlo: `Ctrl+Shift+P` → "MCP: Reset Token" |
+| Herramientas no responden | Revisar la terminal de Output → seleccionar "Excalibur Migration Agent" |
+
+## Usage Examples (CLI)
 
 ### Diagnose with error screenshot
 ```powershell
-python fix.py -C frmBondBilling -b "crash when opening" -s error.png
+python excalibur-fix.py -C frmBondBilling -b "crash when opening" -s error.png
 ```
 
 ### Diagnose with callstack
 ```powershell
-python fix.py -C frmPolicyPC -b "NullReference on save" -s error.png -c callstack.png
+python excalibur-fix.py -C frmPolicyPC -b "NullReference on save" -s error.png -c callstack.png
 ```
 
 ### Compare with legacy visual
 ```powershell
-python fix.py -C frmInstallments -b "button blank" -s current.png -l legacy.png
+python excalibur-fix.py -C frmInstallments -b "button blank" -s current.png -l legacy.png
 ```
 
 ### With expected result description
 ```powershell
-python fix.py -C frmPolicyPC -b "crash on save" -e "Should save policy and return to search"
+python excalibur-fix.py -C frmPolicyPC -b "crash on save" -e "Should save policy and return to search"
 ```
 
 ### Sync repository PRs for knowledge
 ```powershell
 # First time: scans PRs and builds knowledge cache
-python fix.py -C frmBondBilling -b "Form_Load crash" \
+python excalibur-fix.py -C frmBondBilling -b "Form_Load crash" `
     --repo myorg/Excalibur_Modernized --sync-repo --base-branch main
 
 # Subsequent runs use the cache automatically
-python fix.py -C frmBondBilling -b "Form_Load crash" --repo myorg/Excalibur_Modernized
+python excalibur-fix.py -C frmBondBilling -b "Form_Load crash" --repo myorg/Excalibur_Modernized
 ```
 
 ### Auto-apply mode
 ```powershell
-python fix.py -C frmPolicyPC -b "missing color" -s bug.png --auto
+python excalibur-fix.py -C frmPolicyPC -b "missing color" -s bug.png --auto
 ```
 
 ### Utility commands
 ```powershell
-python fix.py --list-skills          # Show all migration skills
-python fix.py --list-knowledge       # Show PR knowledge cache
-python fix.py --scan-notes           # Scan all GAP-Notes in codebase
-python fix.py --scan-notes -C frmInstallments  # Scan GAP-Notes for specific class
+python excalibur-fix.py --list-skills          # Show all migration skills
+python excalibur-fix.py --list-knowledge       # Show PR knowledge cache
+python excalibur-fix.py --scan-notes           # Scan all GAP-Notes in codebase
+python excalibur-fix.py --scan-notes -C frmInstallments  # Scan GAP-Notes for specific class
 ```
 
 ## CLI Parameters
@@ -170,7 +305,7 @@ python fix.py --scan-notes -C frmInstallments  # Scan GAP-Notes for specific cla
 
 ## Skills (Gold Standard)
 
-Skills are `.md` files in `agent/skills/` that document the team's established migration patterns.
+Skills are `.md` files in `excalibur-agent/skills/` that document the team's established migration patterns.
 The agent **strictly adheres** to these guidelines.
 
 | # | Skill | Category | Severity |
@@ -214,29 +349,30 @@ dotnet_fix: What the correct .NET fix is
 ## File Structure
 
 ```
-excalibur-agent/
-├── excalibur-fix.bat      # 🚀 Launcher script (teammates use this)
-├── excalibur-fix.py       # CLI entry point
-├── setup.bat              # 🔧 One-time setup (install deps)
-├── forensic_agent.py      # Lead Forensic Migration Engineer (main agent)
-├── config.py              # Central configuration
-├── repo_sync.py           # GitHub PR sync + GAP-Note extraction
-├── gap_note_scanner.py    # Local codebase GAP-Note scanner
-├── skills_engine.py       # Skills loader + indexer (Gold Standard)
-├── skills/                # Migration skill files (.md)
-│   ├── 01_form_load_timing.md
-│   ├── 02_dbvariant_cast.md
-│   ├── 03_backcolor_visual.md
-│   ├── 04_commandbutton_image.md
-│   ├── 05_control_sizing.md
-│   ├── 06_treeview_migration.md
-│   ├── 08_vb6_type_nuances.md
-│   ├── 09_dbvariant_field_types.md
-│   └── ... (more skills)
-├── knowledge_cache.json   # Auto-generated PR knowledge cache
-├── requirements.txt       # Python dependencies
-├── .env.example           # Token configuration template
-└── README.md              # This documentation
+Upgraded/
+├── .vscode/
+│   └── mcp.json               # 🤖 MCP Server config for Copilot Chat
+└── excalibur-agent/
+    ├── excalibur-fix.bat      # 🚀 Launcher script (teammates use this)
+    ├── excalibur-fix.py       # CLI entry point
+    ├── mcp_server.py          # 🤖 MCP Server for VS Code Copilot Chat
+    ├── setup.bat              # 🔧 One-time setup (install deps)
+    ├── forensic_agent.py      # Lead Forensic Migration Engineer (main agent)
+    ├── config.py              # Central configuration
+    ├── repo_sync.py           # GitHub PR sync + GAP-Note extraction
+    ├── gap_note_scanner.py    # Local codebase GAP-Note scanner
+    ├── skills_engine.py       # Skills loader + indexer (Gold Standard)
+    ├── skills/                # Migration skill files (.md)
+    │   ├── 01_form_load_timing.md
+    │   ├── 02_dbvariant_cast.md
+    │   ├── 03_backcolor_visual.md
+    │   ├── ...
+    │   └── 13_truedbgrid-unbound-columns.md
+    ├── knowledge_cache.json   # Auto-generated PR knowledge cache
+    ├── requirements.txt       # Python dependencies
+    ├── .env.example           # Token configuration template
+    ├── .gitignore             # Excludes .env, __pycache__
+    └── README.md              # This documentation
 ```
 
 ## Key Design Decisions
