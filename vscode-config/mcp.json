@@ -1,0 +1,23 @@
+{
+  "servers": {
+    "excalibur-agent": {
+      "type": "stdio",
+      "command": "${env:LOCALAPPDATA}\\Programs\\Python\\Python312\\python.exe",
+      "args": [
+        "${workspaceFolder}/excalibur-agent/mcp_server.py"
+      ],
+      "env": {
+        "PYTHONIOENCODING": "utf-8",
+        "GITHUB_TOKEN": "${input:github-token}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "id": "github-token",
+      "type": "promptString",
+      "description": "GitHub token for the AI model (ghp_...)",
+      "password": true
+    }
+  ]
+}

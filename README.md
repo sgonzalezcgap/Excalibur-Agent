@@ -62,16 +62,24 @@ and documented migration skills as its primary source of truth.
 
 ### Primera vez (setup — solo una vez)
 ```powershell
-# 1. Clonar o actualizar el repo
-git pull
+# 1. Ir a la carpeta del proyecto Excalibur (Upgraded/)
+cd C:\Avalon\t\Excalibur_Modernized\Upgraded
 
-# 2. Correr setup (instala dependencias automáticamente)
+# 2. Clonar el agente dentro del workspace
+git clone https://github.com/sgonzalezcgap/Excalibur-Agent.git excalibur-agent
+
+# 3. Correr setup (instala Python deps + configura VS Code automáticamente)
 excalibur-agent\setup.bat
 
-# 3. Configurar tu GitHub token (una vez por terminal)
+# 4. Configurar tu GitHub token
 $env:GITHUB_TOKEN = "ghp_TU_TOKEN_AQUI"
 # O crear archivo excalibur-agent\.env con: GITHUB_TOKEN=ghp_TU_TOKEN_AQUI
 ```
+
+> **`setup.bat` instala automáticamente:**
+> - Dependencias Python (`requirements.txt`)
+> - `.vscode/mcp.json` → MCP Server para Copilot Chat
+> - `.github/copilot-instructions.md` → Instrucciones personalizadas para Copilot
 
 ### Uso diario (CLI)
 ```powershell
@@ -105,11 +113,13 @@ sin necesidad de abrir una terminal ni recordar comandos.
 
 ### Paso 1 — Configurar el MCP Server
 
-Crear (o verificar que existe) el archivo `.vscode/mcp.json` en la raíz del proyecto Excalibur
-(`Upgraded/`). Si ya clonaste el repo, este archivo ya viene incluido:
+> **Si ya corriste `setup.bat`, este paso ya está hecho.** El script copia automáticamente
+> `.vscode/mcp.json` al workspace. Solo necesitas este paso si quieres verificar o personalizar.
+
+El archivo `.vscode/mcp.json` configura el MCP server:
 
 ```jsonc
-// .vscode/mcp.json
+// .vscode/mcp.json (instalado automáticamente por setup.bat)
 {
   "servers": {
     "excalibur-agent": {
@@ -385,6 +395,9 @@ Upgraded/
     │   ├── 03_backcolor_visual.md
     │   ├── ...
     │   └── 13_truedbgrid-unbound-columns.md
+    ├── vscode-config/             # Config files (copied by setup.bat)
+    │   ├── mcp.json               #   → .vscode/mcp.json
+    │   └── copilot-instructions.md #  → .github/copilot-instructions.md
     ├── knowledge_cache.json   # Auto-generated PR knowledge cache
     ├── requirements.txt       # Python dependencies
     ├── .env.example           # Token configuration template
