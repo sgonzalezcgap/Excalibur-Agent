@@ -31,6 +31,7 @@ from config import (
 from repo_sync import RepoSync
 from gap_note_scanner import GapNoteScanner
 from skills_engine import SkillsEngine
+from skill_discovery import SkillDiscovery, FixRecord
 
 
 # ─────────────────────────────────────────────
@@ -349,7 +350,7 @@ class ForensicAgent:
                 "GITHUB_TOKEN not found.\n"
                 "  Option 1: $env:GITHUB_TOKEN = (gh auth token)\n"
                 "  Option 2: $env:GITHUB_TOKEN = 'ghp_YOUR_TOKEN'\n"
-                "  Option 3: Add it to excalibur-agent\\.env file"
+                "  Option 3: Add it to agent\\.env file"
             )
 
         # LLM
@@ -362,10 +363,15 @@ class ForensicAgent:
         self.skills_engine = SkillsEngine()
         self.gap_scanner = GapNoteScanner()
         self.repo_sync = RepoSync(self.token, repo) if repo else None
+        self.skill_discovery = SkillDiscovery()
 
         # Token tracking
         self.total_prompt_tokens = 0
         self.total_completion_tokens = 0
+
+        # Fix tracking for skill discovery
+        self._applied_fixes: list[FixRecord] = []
+        self._last_build_passed = False
 
     def initialize_knowledge(
         self,
@@ -549,6 +555,8 @@ class ForensicAgent:
         global _read_cache, _current_iteration
         _read_cache = {}  # Reset per-session cache
         _current_iteration = 0
+        self._applied_fixes = []  # Reset fix tracking
+        self._last_build_passed = False
 
         system_prompt = self._build_system_prompt(class_name, description)
         user_content = self._build_user_message(
@@ -674,11 +682,38 @@ class ForensicAgent:
                         if confirm in ("Y", "YES", "S", "SI", "SÍ"):
                             result = execute_tool(fn.name, args)
                             print(f"  ✅ {result}")
+                            # Track the applied fix for skill discovery
+                            if "OK:" in result or "edited" in result.lower():
+                                matched_skill = self._find_matched_skill(description, class_name)
+                                self._applied_fixes.append(FixRecord(
+                                    file_path=file_path,
+                                    old_text=old_text,
+                                    new_text=new_text,
+                                    description=description,
+                                    class_name=class_name,
+                                    matched_skill_id=matched_skill,
+                                ))
                         else:
                             result = "User declined this edit."
                             print(f"  ⏭️ Skipped.")
                     else:
                         result = execute_tool(fn.name, args)
+
+                        # Track edits in auto-apply mode
+                        if fn.name == "edit_file" and ("OK:" in result or "edited" in result.lower()):
+                            matched_skill = self._find_matched_skill(description, class_name)
+                            self._applied_fixes.append(FixRecord(
+                                file_path=args.get('path', '?'),
+                                old_text=args.get('old_text', ''),
+                                new_text=args.get('new_text', ''),
+                                description=description,
+                                class_name=class_name,
+                                matched_skill_id=matched_skill,
+                            ))
+
+                        # Track build results
+                        if fn.name == "compile_project" and "BUILD SUCCEEDED" in result:
+                            self._last_build_passed = True
 
                     # Truncate tool result before adding to messages
                     result = _truncate(result, MAX_READ_FILE_CHARS, "tool result")
@@ -699,3 +734,48 @@ class ForensicAgent:
         print(f"  Session complete ({iteration} iterations)")
         print(f"  📊 Total tokens — prompt: {self.total_prompt_tokens:,} | completion: {self.total_completion_tokens:,} | total: {self.total_prompt_tokens + self.total_completion_tokens:,}")
         print(f"{'='*60}\n")
+
+        # ─── Skill Discovery ─────────────────────────
+        # After session ends, analyze applied fixes for potential new skills
+        self._run_skill_discovery()
+
+    def _find_matched_skill(self, description: str, class_name: str) -> str | None:
+        """Check if the current fix matches any existing skill. Returns skill ID or None."""
+        relevant = self.skills_engine.search(query=description, class_name=class_name, max_results=1)
+        if relevant and relevant[0].relevance_score(description, class_name) >= 5:
+            return relevant[0].id
+        return None
+
+    def _run_skill_discovery(self):
+        """Analyze applied fixes and propose new skills if patterns are reusable."""
+        if not self._applied_fixes:
+            return
+        if not self._last_build_passed:
+            print("  ⏭️ Skill discovery skipped — build did not pass.")
+            return
+
+        # Only analyze fixes that didn't match existing skills
+        unmatched = [f for f in self._applied_fixes if not f.matched_skill_id]
+        if not unmatched:
+            print("  📘 All fixes matched existing skills — no new skills to discover.")
+            return
+
+        print(f"\n{'='*60}")
+        print(f"  🔍 SKILL DISCOVERY — Analyzing {len(unmatched)} unmatched fix(es)...")
+        print(f"{'='*60}")
+
+        for fix in unmatched:
+            analysis = self.skill_discovery.analyze(fix)
+            self.skill_discovery.print_analysis(analysis)
+
+            if analysis["should_create_skill"]:
+                confirm = input(
+                    f"\n  Create new skill '{analysis['suggested_title']}'? (Y/N): "
+                ).strip().upper()
+
+                if confirm in ("Y", "YES", "S", "SI", "SÍ"):
+                    path = self.skill_discovery.generate_skill_file(fix, analysis)
+                    print(f"  ✅ New skill created: {path}")
+                    print(f"     Reload skills with: --list-skills")
+                else:
+                    print(f"  ⏭️ Skill creation skipped.")
