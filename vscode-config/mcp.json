@@ -1,23 +1,16 @@
 {
+  "//NOTE": "This is a TEMPLATE. setup.bat generates the actual mcp.json with absolute paths.",
+  "//NOTE2": "Do NOT copy this file manually — run setup.bat instead.",
   "servers": {
     "excalibur-agent": {
       "type": "stdio",
       "command": "${env:LOCALAPPDATA}\\Programs\\Python\\Python312\\python.exe",
       "args": [
-        "${workspaceFolder}/excalibur-agent/mcp_server.py"
+        "${workspaceFolder}/Upgraded/Excalibur-Agent/mcp_server.py"
       ],
       "env": {
-        "PYTHONIOENCODING": "utf-8",
-        "GITHUB_TOKEN": "${input:github-token}"
+        "PYTHONIOENCODING": "utf-8"
       }
     }
-  },
-  "inputs": [
-    {
-      "id": "github-token",
-      "type": "promptString",
-      "description": "GitHub token for the AI model (ghp_...)",
-      "password": true
-    }
-  ]
+  }
 }

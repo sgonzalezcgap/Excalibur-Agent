@@ -31,7 +31,7 @@ SKIP_DIRS = frozenset({
     "agent", "excalibur-agent", "_UpgradeReport_Files", "Documents",
 })
 
-GAP_NOTE_REGEX = r"//\s*GAP-Note[:\.]?\s*(\w+)[,:]\s*(.*?)$"
+GAP_NOTE_REGEX = r"//\s*GAP-Note[:\.]?\s*(.*?)$"
 
 # ─── Create MCP Server ───────────────────────
 mcp = FastMCP("Excalibur Migration Agent")
@@ -61,7 +61,12 @@ def read_file(path: str, start_line: int = 0, end_line: int = 0) -> str:
 def edit_file(path: str, old_text: str, new_text: str) -> str:
     """Edit a file by replacing old_text with new_text (single occurrence). 
     old_text must be unique — include 3+ lines of surrounding context.
-    Always add '// GAP-Note. agente, description' on changed lines."""
+    Always add '// GAP-Note. agente, description' on changed lines.
+    IMPORTANT: Place the GAP-Note comment on a SEPARATE LINE ABOVE the changed code, not inline.
+    Format: // GAP-Note: description of the fix
+    Example:
+      // GAP-Note: added missing CommandText for stored procedure
+      aStoredProc.CommandText = "up_Save_BANK_ACCOUNT";"""
     full = path if os.path.isabs(path) else os.path.join(PROJECT_ROOT, path)
     try:
         with open(full, "r", encoding="utf-8-sig") as f:

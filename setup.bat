@@ -48,12 +48,61 @@ REM 3. Install VS Code config files to workspace
 echo.
 echo  [..] Installing VS Code config files...
 
-REM Copy .vscode/mcp.json
-if not exist "%WORKSPACE_DIR%.vscode" mkdir "%WORKSPACE_DIR%.vscode"
-copy /Y "%AGENT_DIR%vscode-config\mcp.json" "%WORKSPACE_DIR%.vscode\mcp.json" >nul
-echo  [OK] .vscode\mcp.json installed
+REM ─── Detect VS Code workspace root ─────────────────────────
+REM VS Code can be opened at Upgraded/ or at Excalibur_Modernized/.
+REM We detect the correct root by looking for .sln or .vscode folder.
+REM Strategy: try WORKSPACE_DIR first, then its parent.
+set VSCODE_ROOT=%WORKSPACE_DIR%
+if exist "%WORKSPACE_DIR%.vscode" (
+    set VSCODE_ROOT=%WORKSPACE_DIR%
+    echo  [OK] VS Code workspace root detected: %WORKSPACE_DIR%
+) else if exist "%WORKSPACE_DIR%..\Excalibur.sln" (
+    REM Workspace is the parent (Excalibur_Modernized\)
+    for %%I in ("%WORKSPACE_DIR%..") do set VSCODE_ROOT=%%~fI\
+    echo  [OK] VS Code workspace root detected: !VSCODE_ROOT!
+) else (
+    REM Fallback: also install to parent just in case
+    for %%I in ("%WORKSPACE_DIR%..") do set VSCODE_ROOT=%%~fI\
+    echo  [!!] Could not detect VS Code workspace root.
+    echo       Installing to both %WORKSPACE_DIR% and !VSCODE_ROOT!
+)
 
-REM Copy .github/copilot-instructions.md
+REM ─── Generate mcp.json with absolute path ──────────────────
+REM Using absolute path to mcp_server.py avoids ${workspaceFolder} issues
+REM when users open different folders as workspace root in VS Code.
+set MCP_SERVER_PATH=%AGENT_DIR%mcp_server.py
+REM Convert backslashes to double-backslashes for JSON
+set MCP_SERVER_JSON=%MCP_SERVER_PATH:\=\\%
+set PYTHON_JSON=%PYTHON:\=\\%
+
+REM Install to detected VS Code root
+if not exist "!VSCODE_ROOT!.vscode" mkdir "!VSCODE_ROOT!.vscode"
+(
+echo {
+echo   "servers": {
+echo     "excalibur-agent": {
+echo       "type": "stdio",
+echo       "command": "%PYTHON_JSON%",
+echo       "args": [
+echo         "%MCP_SERVER_JSON%"
+echo       ],
+echo       "env": {
+echo         "PYTHONIOENCODING": "utf-8"
+echo       }
+echo     }
+echo   }
+echo }
+) > "!VSCODE_ROOT!.vscode\mcp.json"
+echo  [OK] .vscode\mcp.json installed at !VSCODE_ROOT!.vscode\
+
+REM Also install to Upgraded/.vscode/ if different from VSCODE_ROOT
+if /I not "!VSCODE_ROOT!" == "%WORKSPACE_DIR%" (
+    if not exist "%WORKSPACE_DIR%.vscode" mkdir "%WORKSPACE_DIR%.vscode"
+    copy /Y "!VSCODE_ROOT!.vscode\mcp.json" "%WORKSPACE_DIR%.vscode\mcp.json" >nul
+    echo  [OK] .vscode\mcp.json also installed at %WORKSPACE_DIR%.vscode\
+)
+
+REM Copy .github/copilot-instructions.md (to Upgraded/ — always the project root)
 if not exist "%WORKSPACE_DIR%.github" mkdir "%WORKSPACE_DIR%.github"
 copy /Y "%AGENT_DIR%vscode-config\copilot-instructions.md" "%WORKSPACE_DIR%.github\copilot-instructions.md" >nul
 echo  [OK] .github\copilot-instructions.md installed
@@ -67,9 +116,9 @@ echo  ============================================================
 echo   SETUP COMPLETE!
 echo  ============================================================
 echo.
-echo  Installed to: %WORKSPACE_DIR%
-echo    .vscode\mcp.json                  (MCP Server config)
-echo    .github\copilot-instructions.md   (Copilot custom instructions)
+echo  Installed to:
+echo    !VSCODE_ROOT!.vscode\mcp.json           (MCP Server config - absolute paths)
+echo    %WORKSPACE_DIR%.github\copilot-instructions.md   (Copilot custom instructions)
 echo.
 echo  IMPORTANT: Set your GitHub token before using the agent:
 echo.
@@ -83,6 +132,6 @@ echo    excalibur-fix -C ClassName -b "error description"
 echo.
 echo  ─── Copilot Chat Usage ───
 echo    Open VS Code, switch to Agent mode, and just ask:
-echo    "En PD_BarCodePrint linea 87 hay un IndexOutOfRangeException, diagnosticalo"
+echo    "In PD_BarCodePrint line 87 there is an IndexOutOfRangeException, diagnose it"
 echo.
 pause

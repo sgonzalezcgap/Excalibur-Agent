@@ -1,6 +1,6 @@
-# 🔬 Excalibur Forensic Migration Agent
+﻿# Excalibur Forensic Migration Agent
 
-**Lead Forensic Migration Engineer** for the Excalibur Modernized project (VB6 → C# .NET 9).
+**Lead Forensic Migration Engineer** for the Excalibur Modernized project (VB6 -> C# .NET 9).
 
 An autonomous debugging agent that diagnoses complex runtime errors by cross-referencing
 legacy VB6 patterns with modern C# implementations, using established team patterns (GAP-Notes)
@@ -9,246 +9,212 @@ and documented migration skills as its primary source of truth.
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                    INPUT (Bug Report)                         │
-├──────────────┬───────────────┬──────────────┬───────────────┤
-│ 🖥️ Error     │ 📋 Callstack  │ 🎯 Expected  │ 📝 Description│
-│ Screenshot   │ Screenshot    │ Result       │ + Class       │
-└──────┬───────┴───────┬───────┴──────┬───────┴───────┬───────┘
-       │               │              │               │
-       ▼               ▼              ▼               ▼
-┌──────────────────────────────────────────────────────────────┐
-│                   KNOWLEDGE SOURCES                          │
-├────────────────┬──────────────────┬──────────────────────────┤
-│ 📋 Repo PRs    │ 📘 Skills (.md)  │ 📝 Local GAP-Notes      │
-│ --sync-repo    │ Gold Standard    │ Live codebase scan       │
-│ GitHub API     │ agent/skills/    │ // GAP-Note. author,..   │
-├────────────────┴──────────────────┴──────────────────────────┤
-│                 Pattern Matching Engine                       │
-│  • GAP-Note identification (sgonzalez, jnunez, etc.)        │
-│  • Skill relevance scoring                                   │
-│  • Category classification                                   │
-│  • Confidence ranking (trusted authors = high confidence)    │
-└──────────────────────────┬───────────────────────────────────┘
-                           │
-                           ▼
-┌──────────────────────────────────────────────────────────────┐
-│                    LLM (GPT-4o via GitHub Models)            │
-│                                                              │
-│  System Prompt:                                              │
-│  • Full migration context (VB6 types, DbVariant, etc.)      │
-│  • Injected relevant skills                                  │
-│  • Injected historical fixes from PRs                        │
-│  • Injected local GAP-Notes for the class                   │
-│                                                              │
-│  Tools:                                                      │
-│  • read_file, edit_file, search_code                        │
-│  • find_class_files, search_gap_notes                       │
-│  • compile_project, search_vb6_pattern                      │
-└──────────────────────────┬───────────────────────────────────┘
-                           │
-                           ▼
-┌──────────────────────────────────────────────────────────────┐
-│                    RESPONSE (Mandatory Structure)            │
-├──────────────────────────────────────────────────────────────┤
-│  1. Root Cause Analysis                                      │
-│  2. Historical Reference (GAP-Note / Skill citation)        │
-│  3. Proposed Fix (C# code with // GAP-Note comments)        │
-│  4. Verification Steps                                       │
-└──────────────────────────────────────────────────────────────┘
+INPUT (Bug Report)
+  Error Screenshot | Callstack Screenshot | Expected Result | Description + Class
+          |                |                  |                 |
+          v                v                  v                 v
+KNOWLEDGE SOURCES
+  Repo PRs (--sync-repo, GitHub API)
+  Skills (.md, Gold Standard, agent/skills/)
+  Local GAP-Notes (Live codebase scan, // GAP-Note: author,..)
+          |
+          v  Pattern Matching Engine
+          |  - GAP-Note identification (sgonzalez, jnunez, etc.)
+          |  - Skill relevance scoring
+          |  - Category classification
+          |  - Confidence ranking (trusted authors = high confidence)
+          |
+          v
+LLM (GPT-4o via GitHub Models)
+  System Prompt:
+  - Full migration context (VB6 types, DbVariant, etc.)
+  - Injected relevant skills
+  - Injected historical fixes from PRs
+  - Injected local GAP-Notes for the class
+  Tools:
+  - read_file, edit_file, search_code
+  - find_class_files, search_gap_notes
+  - compile_project, search_vb6_pattern
+          |
+          v
+RESPONSE (Mandatory Structure)
+  1. Root Cause Analysis
+  2. Historical Reference (GAP-Note / Skill citation)
+  3. Proposed Fix (C# code with // GAP-Note comments)
+  4. Verification Steps
 ```
 
-## Quick Start (Para el equipo)
+## Quick Start
 
-### Primera vez (setup — solo una vez)
+### First-time setup (run once)
+
 ```powershell
-# 1. Ir a la carpeta del proyecto Excalibur (Upgraded/)
+# 1. Navigate to the Excalibur project folder (Upgraded/)
 cd C:\Avalon\t\Excalibur_Modernized\Upgraded
 
-# 2. Clonar el agente dentro del workspace
+# 2. Clone the agent into the workspace
 git clone https://github.com/sgonzalezcgap/Excalibur-Agent.git excalibur-agent
 
-# 3. Correr setup (instala Python deps + configura VS Code automáticamente)
+# 3. Run setup (installs Python deps + configures VS Code automatically)
 excalibur-agent\setup.bat
 
-# 4. Configurar tu GitHub token
-$env:GITHUB_TOKEN = "ghp_TU_TOKEN_AQUI"
-# O crear archivo excalibur-agent\.env con: GITHUB_TOKEN=ghp_TU_TOKEN_AQUI
+# 4. Configure your GitHub token
+$env:GITHUB_TOKEN = "ghp_YOUR_TOKEN_HERE"
+# Or create file excalibur-agent\.env with: GITHUB_TOKEN=ghp_YOUR_TOKEN_HERE
 ```
 
-> **`setup.bat` instala automáticamente:**
-> - Dependencias Python (`requirements.txt`)
-> - `.vscode/mcp.json` → MCP Server para Copilot Chat
-> - `.github/copilot-instructions.md` → Instrucciones personalizadas para Copilot
+> **setup.bat automatically installs:**
+> - Python dependencies (requirements.txt)
+> - .vscode/mcp.json -- MCP Server config for Copilot Chat (generated with absolute paths)
+> - .github/copilot-instructions.md -- Custom instructions for Copilot
 
-### Uso diario (CLI)
+### Daily usage (CLI)
+
 ```powershell
-# Desde cualquier terminal, navegar a la carpeta del agente:
+# From any terminal, navigate to the agent folder:
 cd excalibur-agent
 
-# Correr el agente:
-excalibur-fix -C NombreClase -b "descripción del error"
+# Run the agent:
+excalibur-fix -C ClassName -b "error description"
 
-# Ejemplo real:
+# Real example:
 excalibur-fix -C PD_BarCodePrint -b "IndexOutOfRangeException: Invalid index 1 for OleDbParameterCollection" -L "PD_BarCodePrint.cs:87"
 ```
 
-> **Nota**: Si `excalibur-fix` no funciona, usar directamente:
+> **Note**: If excalibur-fix doesn't work, use directly:
 > ```powershell
-> python excalibur-fix.py -C NombreClase -b "descripción del error"
+> python excalibur-fix.py -C ClassName -b "error description"
 > ```
 
 ---
 
-## 🤖 Uso desde Copilot Chat (MCP Server)
+## Using from Copilot Chat (MCP Server)
 
-El agente también funciona como **MCP Server** dentro de VS Code. Esto permite usar todas
-las herramientas del agente directamente desde **GitHub Copilot Chat** en modo Agent,
-sin necesidad de abrir una terminal ni recordar comandos.
+The agent also works as an **MCP Server** inside VS Code. This allows you to use all
+agent tools directly from **GitHub Copilot Chat** in Agent mode,
+without opening a terminal or remembering commands.
 
-### Requisitos previos
-1. **VS Code** con la extensión **GitHub Copilot** instalada
-2. **Python 3.12** instalado en `%LOCALAPPDATA%\Programs\Python\Python312\`
-3. **Dependencias** instaladas: ejecutar `excalibur-agent\setup.bat` una sola vez
+### Prerequisites
 
-### Paso 1 — Configurar el MCP Server
+1. **VS Code** with the **GitHub Copilot** extension installed
+2. **Python 3.12** installed at %LOCALAPPDATA%\Programs\Python\Python312\
+3. **Dependencies** installed: run excalibur-agent\setup.bat once
 
-> **Si ya corriste `setup.bat`, este paso ya está hecho.** El script copia automáticamente
-> `.vscode/mcp.json` al workspace. Solo necesitas este paso si quieres verificar o personalizar.
+### Step 1 -- Configure the MCP Server
 
-El archivo `.vscode/mcp.json` configura el MCP server:
+> **If you already ran setup.bat, this step is done.** The script automatically generates
+> .vscode/mcp.json with absolute paths to your local Python and mcp_server.py.
+> You only need this step to verify or customize.
+
+Example of the auto-generated file:
 
 ```jsonc
-// .vscode/mcp.json (instalado automáticamente por setup.bat)
+// .vscode/mcp.json (auto-generated by setup.bat with absolute paths)
 {
   "servers": {
     "excalibur-agent": {
       "type": "stdio",
-      "command": "${env:LOCALAPPDATA}\\Programs\\Python\\Python312\\python.exe",
+      "command": "C:\\Users\\you\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
       "args": [
-        "${workspaceFolder}/excalibur-agent/mcp_server.py"
+        "C:\\Avalon\\t\\Excalibur_Modernized\\Upgraded\\Excalibur-Agent\\mcp_server.py"
       ],
       "env": {
-        "PYTHONIOENCODING": "utf-8",
-        "GITHUB_TOKEN": "${input:github-token}"
+        "PYTHONIOENCODING": "utf-8"
       }
     }
-  },
-  "inputs": [
-    {
-      "id": "github-token",
-      "type": "promptString",
-      "description": "GitHub token for the AI model (ghp_...)",
-      "password": true
-    }
-  ]
+  }
 }
 ```
 
-> **⚠️ Python no está en PATH?** El archivo usa `${env:LOCALAPPDATA}\Programs\Python\Python312\python.exe`.
-> Si tu Python está en otra ruta, ajusta el campo `"command"` con tu ruta completa.
+> **Python not in PATH?** setup.bat detects your Python installation automatically.
+> If it can't find it, adjust the "command" field in .vscode/mcp.json with your full path.
 
-### Paso 2 — Activar en VS Code
+### Step 2 -- Activate in VS Code
 
-1. **Abrir VS Code** con la carpeta `Upgraded/` como workspace
-2. Abrir **Copilot Chat** (ícono de chat en la barra lateral, o `Ctrl+Shift+I`)
-3. Cambiar a **modo Agent** (seleccionar "Agent" en el dropdown del chat, no "Ask" ni "Edit")
-4. La primera vez, VS Code te pedirá el **GitHub Token** (el que usas para GitHub Models API)
-5. Verás que las herramientas del agente aparecen automáticamente — busca el ícono 🔧 en el chat
+1. **Open VS Code** with the Upgraded/ folder as workspace
+2. Open **Copilot Chat** (chat icon in the sidebar, or Ctrl+Shift+I)
+3. Switch to **Agent mode** (select "Agent" in the chat dropdown, not "Ask" or "Edit")
+4. The first time, VS Code will ask for your **GitHub Token** (the one for GitHub Models API)
+5. You'll see the agent tools appear automatically -- look for the tools icon in the chat
 
-### ¿Cómo sabe Copilot que debe usar NUESTRAS herramientas?
+### How does Copilot know to use OUR tools?
 
-El archivo **`.github/copilot-instructions.md`** es la clave. VS Code Copilot lo lee
-automáticamente al abrir el workspace y lo inyecta como instrucciones del sistema.
+The file **.github/copilot-instructions.md** is the key. VS Code Copilot reads it
+automatically when opening the workspace and injects it as system instructions.
 
-Este archivo le dice a Copilot:
-- **SIEMPRE preferir** las herramientas MCP del `excalibur-agent` sobre sus herramientas built-in
-- **Seguir el workflow de diagnóstico**: find → read → search_gap_notes → get_skill → fix → compile
-- **Reglas críticas**: usar `OleParametersHelper.ParameterSpec` (nunca `new OleDbParameter()`), agregar GAP-Notes, etc.
-- **Contexto del proyecto**: .NET 9, WinForms, OLE DB, UpgradeHelpers.DB
+This file tells Copilot:
+- **ALWAYS prefer** the MCP tools from excalibur-agent over its built-in tools
+- **Follow the diagnostic workflow**: find -> read -> search_gap_notes -> get_skill -> fix -> compile
+- **Critical rules**: use OleParametersHelper.ParameterSpec (never new OleDbParameter()), add GAP-Notes, etc.
+- **Project context**: .NET 9, WinForms, OLE DB, UpgradeHelpers.DB
 
-> **No necesitas hacer nada extra** — con solo tener `.github/copilot-instructions.md` en el
-> workspace, Copilot Chat ya sabe qué herramientas usar y cómo diagnosticar bugs de Excalibur.
-> Simplemente escribe tu pregunta en lenguaje natural y Copilot seguirá el workflow correcto.
+> **No extra steps needed** -- just having .github/copilot-instructions.md in the
+> workspace is enough. Copilot Chat already knows which tools to use and how to diagnose
+> Excalibur bugs. Simply type your question in natural language and Copilot will follow
+> the correct workflow.
 
-### Paso 3 — Usar las herramientas
+### Step 3 -- Use the tools
 
-En el chat de Copilot, simplemente escribe en lenguaje natural. Copilot invocará las
-herramientas del agente automáticamente:
+In Copilot Chat, simply type in natural language. Copilot will invoke the agent tools
+automatically:
 
-#### Ejemplos de prompts:
+#### Prompt examples
 
-**Buscar errores en código:**
-```
-Busca IndexOutOfRangeException en PD_BarCodePrint
-```
+**Search for errors in code:**
+  Search for IndexOutOfRangeException in PD_BarCodePrint
 
-**Leer un archivo en una línea específica:**
-```
-Lee la línea 87 de BusinessLogic/PD_BarCodePrint.cs
-```
+**Read a file at a specific line:**
+  Read line 87 of BusinessLogic/PD_BarCodePrint.cs
 
-**Compilar el proyecto:**
-```
-Compila el proyecto Excalibur y dime si hay errores
-```
+**Compile the project:**
+  Compile the Excalibur project and tell me if there are errors
 
-**Buscar GAP-Notes de un compañero:**
-```
-Busca todos los GAP-Notes de sgonzalez en PD_BillingRules
-```
+**Search GAP-Notes from a teammate:**
+  Search all GAP-Notes from sgonzalez in PD_BillingRules
 
-**Ver los skills de migración disponibles:**
-```
-Lista todos los skills de migración disponibles
-```
+**View available migration skills:**
+  List all available migration skills
 
-**Leer un skill específico:**
-```
-Muéstrame el skill de OleParametersHelper
-```
+**Read a specific skill:**
+  Show me the OleParametersHelper skill
 
-**Resumen de GAP-Notes del codebase:**
-```
-Dame un resumen de todos los GAP-Notes del proyecto
-```
+**GAP-Notes summary of the codebase:**
+  Give me a summary of all GAP-Notes in the project
 
-**Encontrar archivos de una clase:**
-```
-Encuentra todos los archivos de frmBondBilling
-```
+**Find files for a class:**
+  Find all files for frmBondBilling
 
-**Búsqueda + diagnóstico combinado:**
-```
-En PD_BarCodePrint.cs línea 87 hay un IndexOutOfRangeException con OleDbParameterCollection.
-Busca el código, lee el contexto alrededor, revisa si hay GAP-Notes relacionados,
-y consulta el skill de OleParametersHelper para proponer un fix.
-```
+**Combined search + diagnosis:**
+  In PD_BarCodePrint.cs line 87 there is an IndexOutOfRangeException with OleDbParameterCollection.
+  Search the code, read the surrounding context, check for related GAP-Notes,
+  and consult the OleParametersHelper skill to propose a fix.
 
-### Herramientas MCP disponibles
+### Available MCP Tools
 
-| Herramienta | Descripción |
-|-------------|-------------|
-| `read_file` | Lee archivos del proyecto (con rango de líneas opcional) |
-| `edit_file` | Edita archivos reemplazando texto (con validación de unicidad) |
-| `search_code` | Busca patrones regex en todo el codebase (.cs) |
-| `find_class_files` | Encuentra todos los archivos de una clase/form |
-| `search_gap_notes` | Busca comentarios `//GAP-Note` por clase o keyword |
-| `compile_project` | Compila con `dotnet build` y reporta errores CS |
-| `list_skills` | Lista todos los skills de migración disponibles |
-| `get_skill` | Lee el contenido completo de un skill específico |
-| `scan_gap_notes_summary` | Resumen estadístico de GAP-Notes (por autor, por clase) |
+| Tool                    | Description                                                    |
+|-------------------------|----------------------------------------------------------------|
+| read_file               | Read project files (with optional line range)                  |
+| edit_file               | Edit files by replacing text (with uniqueness validation)      |
+| search_code             | Search regex patterns across the entire codebase (.cs)         |
+| find_class_files        | Find all files for a class/form                                |
+| search_gap_notes        | Search //GAP-Note comments by class or keyword                 |
+| compile_project         | Compile with dotnet build and report CS errors                 |
+| list_skills             | List all available migration skills                            |
+| get_skill               | Read the full content of a specific skill                      |
+| scan_gap_notes_summary  | Statistical summary of GAP-Notes (by author, by class)         |
 
-### Troubleshooting MCP
+### MCP Troubleshooting
 
-| Problema | Solución |
-|----------|----------|
-| No aparecen las herramientas en Copilot | Verificar que estás en modo **Agent** (no "Ask") |
-| "Python not found" | Ajustar la ruta en `.vscode/mcp.json` → campo `"command"` |
-| "Module mcp not found" | Ejecutar: `python -m pip install mcp` |
-| El server no arranca | Probar manualmente: `python excalibur-agent/mcp_server.py` y enviar JSON-RPC |
-| Token inválido | VS Code pide el token la primera vez. Para cambiarlo: `Ctrl+Shift+P` → "MCP: Reset Token" |
-| Herramientas no responden | Revisar la terminal de Output → seleccionar "Excalibur Migration Agent" |
+| Problem                           | Solution                                                              |
+|-----------------------------------|-----------------------------------------------------------------------|
+| Tools don't appear in Copilot     | Verify you're in **Agent** mode (not "Ask")                           |
+| "Python not found"                | Adjust the path in .vscode/mcp.json -> "command" field                |
+| "Module mcp not found"            | Run: python -m pip install mcp                                        |
+| Server won't start                | Test manually: python excalibur-agent/mcp_server.py and send JSON-RPC |
+| Invalid token                     | VS Code asks for the token the first time. Ctrl+Shift+P -> "MCP: Reset Token" |
+| Tools not responding              | Check the Output terminal -> select "Excalibur Migration Agent"       |
+
+---
 
 ## Usage Examples (CLI)
 
@@ -292,62 +258,70 @@ python excalibur-fix.py -C frmPolicyPC -b "missing color" -s bug.png --auto
 python excalibur-fix.py --list-skills          # Show all migration skills
 python excalibur-fix.py --list-knowledge       # Show PR knowledge cache
 python excalibur-fix.py --scan-notes           # Scan all GAP-Notes in codebase
-python excalibur-fix.py --scan-notes -C frmInstallments  # Scan GAP-Notes for specific class
+python excalibur-fix.py --scan-notes -C frmInstallments  # Scan for specific class
 ```
+
+---
 
 ## CLI Parameters
 
 ### Bug Report Inputs
-| Parameter | Short | Required | Description |
-|-----------|-------|----------|-------------|
-| `--class` | `-C` | ✅ | Target class where the failure is localized |
-| `--bug` | `-b` | ✅ | Runtime error description |
-| `--line` | `-L` | ❌ | Exact error line (e.g. `PD_BarCodePrint.cs:87`) |
-| `--expected` | `-e` | ❌ | Expected functional result |
+
+| Parameter    | Short | Required | Description                                    |
+|--------------|-------|----------|------------------------------------------------|
+| --class      | -C    | Yes      | Target class where the failure is localized    |
+| --bug        | -b    | Yes      | Runtime error description                      |
+| --line       | -L    | No       | Exact error line (e.g. PD_BarCodePrint.cs:87)  |
+| --expected   | -e    | No       | Expected functional result                     |
 
 ### Screenshots (OCR + Vision Analysis)
-| Parameter | Short | Description |
-|-----------|-------|-------------|
-| `--screenshot` | `-s` | Runtime error screenshot |
-| `--callstack` | `-c` | Callstack screenshot |
-| `--legacy` | `-l` | Expected result / VB6 legacy screenshot |
+
+| Parameter    | Short | Description                              |
+|--------------|-------|------------------------------------------|
+| --screenshot | -s    | Runtime error screenshot                 |
+| --callstack  | -c    | Callstack screenshot                     |
+| --legacy     | -l    | Expected result / VB6 legacy screenshot  |
 
 ### Repository Sync
-| Parameter | Description |
-|-----------|-------------|
-| `--repo` | GitHub repo (owner/repo) for PR knowledge |
-| `--sync-repo` | Trigger PR scan (first time or refresh) |
-| `--max-prs` | Max PRs to scan (default: 50) |
-| `--base-branch` | Filter PRs by base branch |
+
+| Parameter     | Description                              |
+|---------------|------------------------------------------|
+| --repo        | GitHub repo (owner/repo) for PR knowledge|
+| --sync-repo   | Trigger PR scan (first time or refresh)  |
+| --max-prs     | Max PRs to scan (default: 50)            |
+| --base-branch | Filter PRs by base branch                |
 
 ### Options
-| Parameter | Short | Description |
-|-----------|-------|-------------|
-| `--auto` | | Apply fixes without confirmation |
-| `--model` | `-m` | LLM model (default: gpt-4o) |
-| `--token` | `-t` | GitHub token override |
-| `--max-iterations` | | Max agent loop iterations (default: 15) |
+
+| Parameter        | Short | Description                              |
+|------------------|-------|------------------------------------------|
+| --auto           |       | Apply fixes without confirmation         |
+| --model          | -m    | LLM model (default: gpt-4o)             |
+| --token          | -t    | GitHub token override                    |
+| --max-iterations |       | Max agent loop iterations (default: 15)  |
+
+---
 
 ## Skills (Gold Standard)
 
-Skills are `.md` files in `excalibur-agent/skills/` that document the team's established migration patterns.
-The agent **strictly adheres** to these guidelines.
+Skills are .md files in excalibur-agent/skills/ that document the team's established
+migration patterns. The agent **strictly adheres** to these guidelines.
 
-| # | Skill | Category | Severity |
-|---|-------|----------|----------|
-| 01 | Form_Load Timing (CreateInstance) | `form_load_timing` | 🔴 Critical |
-| 02 | DbVariant<T> IConvertible Cast | `dbvariant_cast` | 🔴 Critical |
-| 03 | BackColor Cyan/Celeste Visual | `backcolor_visual` | 🟡 Medium |
-| 04 | CommandButtonHelper Image | `commandbutton_image` | 🟠 High |
-| 05 | Control Sizing / Text Clip | `control_sizing` | 🟡 Medium |
-| 06 | TreeView Migration (SelectedNodes + ImageList) | `treeview_migration` | 🟠 High |
-| 07 | OleParametersHelper ParameterSpec Fix | `ole_parameters` | � Critical |
-| 08 | VB6 Integer/Long Type Nuances | `dbvariant_cast` | 🟠 High |
-| 09 | DbParameter → DbVariant\<T\> Field Types | `dbvariant_cast` | 🔴 Critical |
+| #  | Skill                                       | Category             | Severity |
+|----|---------------------------------------------|----------------------|----------|
+| 01 | Form_Load Timing (CreateInstance)           | form_load_timing     | Critical |
+| 02 | DbVariant<T> IConvertible Cast              | dbvariant_cast       | Critical |
+| 03 | BackColor Cyan/Celeste Visual               | backcolor_visual     | Medium   |
+| 04 | CommandButtonHelper Image                   | commandbutton_image  | High     |
+| 05 | Control Sizing / Text Clip                  | control_sizing       | Medium   |
+| 06 | TreeView Migration (SelectedNodes+ImageList)| treeview_migration   | High     |
+| 07 | OleParametersHelper ParameterSpec Fix       | ole_parameters       | Critical |
+| 08 | VB6 Integer/Long Type Nuances               | dbvariant_cast       | High     |
+| 09 | DbParameter to DbVariant<T> Field Types     | dbvariant_cast       | Critical |
 
 ### Adding a New Skill
 
-Create a `.md` file in `agent/skills/` with YAML frontmatter:
+Create a .md file in agent/skills/ with YAML frontmatter:
 
 ```markdown
 ---
@@ -371,52 +345,54 @@ dotnet_fix: What the correct .NET fix is
 (Real examples)
 ```
 
+---
+
 ## File Structure
 
 ```
 Upgraded/
-├── .github/
-│   └── copilot-instructions.md    # 🧠 Instrucciones para Copilot (auto-loaded)
-├── .vscode/
-│   └── mcp.json               # 🤖 MCP Server config para Copilot Chat
-└── excalibur-agent/
-    ├── excalibur-fix.bat      # 🚀 Launcher script (teammates use this)
-    ├── excalibur-fix.py       # CLI entry point
-    ├── mcp_server.py          # 🤖 MCP Server for VS Code Copilot Chat
-    ├── setup.bat              # 🔧 One-time setup (install deps)
-    ├── forensic_agent.py      # Lead Forensic Migration Engineer (main agent)
-    ├── config.py              # Central configuration
-    ├── repo_sync.py           # GitHub PR sync + GAP-Note extraction
-    ├── gap_note_scanner.py    # Local codebase GAP-Note scanner
-    ├── skills_engine.py       # Skills loader + indexer (Gold Standard)
-    ├── skills/                # Migration skill files (.md)
-    │   ├── 01_form_load_timing.md
-    │   ├── 02_dbvariant_cast.md
-    │   ├── 03_backcolor_visual.md
-    │   ├── ...
-    │   └── 13_truedbgrid-unbound-columns.md
-    ├── vscode-config/             # Config files (copied by setup.bat)
-    │   ├── mcp.json               #   → .vscode/mcp.json
-    │   └── copilot-instructions.md #  → .github/copilot-instructions.md
-    ├── knowledge_cache.json   # Auto-generated PR knowledge cache
-    ├── requirements.txt       # Python dependencies
-    ├── .env.example           # Token configuration template
-    ├── .gitignore             # Excludes .env, __pycache__
-    └── README.md              # This documentation
++-- .github/
+|   +-- copilot-instructions.md    # Copilot instructions (auto-loaded by VS Code)
++-- .vscode/
+|   +-- mcp.json                   # MCP Server config for Copilot Chat
++-- excalibur-agent/
+    +-- excalibur-fix.bat          # Launcher script (teammates use this)
+    +-- excalibur-fix.py           # CLI entry point
+    +-- mcp_server.py              # MCP Server for VS Code Copilot Chat
+    +-- setup.bat                  # One-time setup (install deps + configure)
+    +-- forensic_agent.py          # Lead Forensic Migration Engineer (main agent)
+    +-- config.py                  # Central configuration
+    +-- repo_sync.py               # GitHub PR sync + GAP-Note extraction
+    +-- gap_note_scanner.py        # Local codebase GAP-Note scanner
+    +-- skills_engine.py           # Skills loader + indexer (Gold Standard)
+    +-- skills/                    # Migration skill files (.md)
+    |   +-- 01_form_load_timing.md
+    |   +-- 02_dbvariant_cast.md
+    |   +-- 03_backcolor_visual.md
+    |   +-- ...
+    |   +-- 13_truedbgrid-unbound-columns.md
+    +-- vscode-config/             # Config templates (used by setup.bat)
+    |   +-- mcp.json               #   Template (setup.bat generates actual with absolute paths)
+    |   +-- copilot-instructions.md #  Copied to .github/copilot-instructions.md
+    +-- knowledge_cache.json       # Auto-generated PR knowledge cache
+    +-- requirements.txt           # Python dependencies
+    +-- .env.example               # Token configuration template
+    +-- .gitignore                 # Excludes .env, __pycache__
+    +-- README.md                  # This documentation
 ```
 
 ## Key Design Decisions
 
-1. **GAP-Note as Source of Truth**: The agent prioritizes solutions that align with `//GAP-Note.*` 
+1. **GAP-Note as Source of Truth**: The agent prioritizes solutions that align with //GAP-Note
    patterns found in the codebase and PR history.
 
-2. **Trusted Authors**: Notes from `sgonzalez`, `jnunez`, `gartavia`, `lmontero` get 
+2. **Trusted Authors**: Notes from sgonzalez, jnunez, gartavia, lmontero get
    **high confidence** ranking in pattern matching.
 
-3. **Mandatory Response Structure**: The agent always responds with Root Cause Analysis → 
-   Historical Reference → Proposed Fix → Verification Steps.
+3. **Mandatory Response Structure**: The agent always responds with Root Cause Analysis,
+   Historical Reference, Proposed Fix, and Verification Steps.
 
 4. **Legacy Contract**: Fixes never break VB6/.NET behavioral parity unless explicitly requested.
 
-5. **Autonomous but Careful**: The agent proposes and explains fixes before applying. 
-   Use `--auto` only when you trust the pattern matching.
+5. **Autonomous but Careful**: The agent proposes and explains fixes before applying.
+   Use --auto only when you trust the pattern matching.

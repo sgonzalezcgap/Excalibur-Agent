@@ -16,7 +16,7 @@ You have access to specialized MCP tools from the **excalibur-agent** server.
 | `find_class_files` | Find all files (.cs, .Designer.cs, .resX) for a class/form |
 | `search_gap_notes` | Search `//GAP-Note` comments (team fix annotations) by class or keyword |
 | `compile_project` | Compile with `dotnet build` and get CS errors |
-| `edit_file` | Apply a fix by replacing code (always add `// GAP-Note. agente, description`) |
+| `edit_file` | Apply a fix by replacing code (always add GAP-Note comment — see format below) |
 | `list_skills` | List all VB6→C# migration skills (Gold Standard patterns) |
 | `get_skill` | Read a specific migration skill for the correct fix pattern |
 | `scan_gap_notes_summary` | Get a summary of all GAP-Notes by author and class |
@@ -35,7 +35,11 @@ You have access to specialized MCP tools from the **excalibur-agent** server.
 
 - **OleDbParameters**: NEVER use `new OleDbParameter()` directly. ALWAYS use `OleParametersHelper.ParameterSpec` + `AddAndSetOleDbParameters`. Check the `ole_parameters` or `oledb-parameters` skill.
 - **DbVariant<T>**: Use `.Value` (not Convert.ToXxx). Check the `dbvariant_cast` skill.
-- **GAP-Notes**: Every code change MUST include `// GAP-Note. agente, description of fix`
+- **GAP-Notes**: Every code change MUST include a GAP-Note comment on a **separate line ABOVE** the changed code. Format: `// GAP-Note: description of the fix`. Do NOT put the comment inline at the end of the line. Example:
+  ```csharp
+  // GAP-Note: added missing CommandText for stored procedure
+  aStoredProc.CommandText = "up_Save_BANK_ACCOUNT";
+  ```
 - **Trusted authors**: Fixes by `sgonzalez`, `jnunez`, `gartavia`, `lmontero` are high-confidence patterns to follow.
 
 ### Project context:

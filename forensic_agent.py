@@ -679,7 +679,7 @@ class ForensicAgent:
                         print(f"{'─'*60}")
 
                         confirm = input("\n  Apply this change? (Y/N): ").strip().upper()
-                        if confirm in ("Y", "YES", "S", "SI", "SÍ"):
+                        if confirm in ("Y", "YES"):
                             result = execute_tool(fn.name, args)
                             print(f"  ✅ {result}")
                             # Track the applied fix for skill discovery
